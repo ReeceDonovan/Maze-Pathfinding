@@ -10,7 +10,8 @@ let start;
 let end;
 let openSet = [];
 let closedSet = [];
-let generated = false;
+let path = [];
+let escape = false;
 //</Pathfinding variables>
 
 
@@ -106,6 +107,13 @@ class Maze { //Maze class
                 ctx.fillRect(x, y, this.size / this.cols - 3, this.size / this.cols - 3);
 
             }
+            for (let i = 0; i < path.length; i++) {
+                let x = path[i].colNum * this.size / this.cols + 1;
+                let y = path[i].rowNum * this.size / this.cols + 1;
+
+                ctx.fillStyle = "blue";
+                ctx.fillRect(x, y, this.size / this.cols - 3, this.size / this.cols - 3);
+            }
             if (openSet.length > 0) {
 
                 let lowestIndex = 0;
@@ -118,8 +126,15 @@ class Maze { //Maze class
                 let curLow = openSet[lowestIndex];
 
                 if (openSet[lowestIndex] === end) {
+                    path = [];
+                    let temp = curLow;
+                    path.push(temp);
+                    while (temp.previous) {
+                        path.push(temp.previous);
+                        temp = temp.previous;
+                    }
                     console.log("Finished");
-                    generated = false;
+
                 }
 
                 removeFromArray(openSet, curLow);
@@ -144,8 +159,10 @@ class Maze { //Maze class
 
                         neighbour.h = heuristic(neighbour, end);
                         neighbour.f = neighbour.g + neighbour.h;
+                        neighbour.previous = curLow;
                     }
                 }
+
             } else {
                 //No solution
             }
@@ -175,6 +192,7 @@ class Cell { //Cell class
         this.g = 0;
         this.h = 0;
         this.neighbours = [];
+        this.previous = undefined;
     }
 
     checkAllNeighbours() {
@@ -188,10 +206,10 @@ class Cell { //Cell class
         let left = col !== 0 ? grid[row][col - 1] : undefined;
         let right = col !== grid.length - 1 ? grid[row][col + 1] : undefined;
 
-        if (top) neighbours.push(top);
-        if (bottom) neighbours.push(bottom);
-        if (left) neighbours.push(left);
-        if (right) neighbours.push(right);
+        if (top && !grid[row - 1][col].walls.bottomWall) neighbours.push(top);
+        if (bottom && !grid[row + 1][col].walls.topWall) neighbours.push(bottom);
+        if (left && !grid[row][col - 1].walls.rightWall) neighbours.push(left);
+        if (right && !grid[row][col + 1].walls.leftWall) neighbours.push(right);
 
 
         return neighbours
@@ -316,6 +334,6 @@ class Cell { //Cell class
 
 
 
-let newMaze = new Maze(800, 15, 15);
+let newMaze = new Maze(900, 45, 45);
 newMaze.setup();
 newMaze.draw();
