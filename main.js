@@ -38,6 +38,31 @@ class Maze { //Maze class
             }
         }
 
+        let next = current.checkNeighbours();
+
+        if (next) {
+            next.visited = true;
+
+            this.stack.push(current);
+
+            current.highlight(this.cols);
+
+            current.removeWalls(current, next);
+
+            current = next;
+        } else if (this.stack.length > 0) {
+            let cell = this.stack.pop();
+            current = cell;
+            current.highlight(this.cols);
+        }
+
+        if (this.stack.length == 0) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            this.draw();
+        })
     }
 }
 
@@ -54,6 +79,30 @@ class Cell { //Cell class
             leftWall: true,
             rightWall: true,
         };
+    }
+
+    checkNeighbours() {
+        let grid = this.parentGrid;
+        let row = this.rowNum;
+        let col = this.colNum;
+        let neighbors = [];
+
+        let top = row !== 0 ? grid[row - 1][col] : undefined;
+        let bottom = row !== grid.length - 1 ? grid[row + 1][col] : undefined;
+        let left = col !== 0 ? grid[row][col - 1] : undefined;
+        let right = col !== grid.length - 1 ? grid[row][col + 1] : undefined;
+
+        if (top && !top.visited) neighbors.push(top);
+        if (bottom && !bottom.visited) neighbors.push(bottom);
+        if (left && !left.visited) neighbors.push(left);
+        if (right && !right.visited) neighbors.push(right);
+
+        if (neighbors.length !== 0) {
+            let random = Math.floor(Math.random() * neighbors.length);
+            return neighbors[random];
+        } else {
+            return undefined;
+        }
     }
 
     //Generating cell walls
@@ -85,6 +134,37 @@ class Cell { //Cell class
         ctx.stroke();
     }
 
+    highlight(cols) {
+        let x = this.colNum * this.parentSize / cols + 1;
+        let y = this.rowNum * this.parentSize / cols + 1;
+
+        ctx.fillStyle = "purple";
+        ctx.fillRect(x, y, this.parentSize / cols - 3, this.parentSize / cols - 3);
+    }
+
+    removeWalls(cell1, cell2) {
+        let x = (cell1.colNum - cell2.colNum);
+
+        if (x == 1) {
+            cell1.walls.leftWall = false;
+            cell2.walls.rightWall = false;
+        } else if (x == -1) {
+            cell1.walls.rightWall = false;
+            cell2.walls.leftWall = false;
+        }
+
+        let y = cell1.rowNum - cell2.rowNum;
+
+        if (y == 1) {
+            cell1.walls.topWall = false;
+            cell2.walls.bottomWall = false;
+        } else if (y == -1) {
+            cell1.walls.bottomWall = false;
+            cell2.walls.topWall = false;
+        }
+
+    }
+
     //Drawing cell walls
     show(size, rows, cols) {
         let x = (this.colNum * size) / cols;
@@ -105,6 +185,6 @@ class Cell { //Cell class
 }
 
 
-let newMaze = new Maze(500, 10, 10);
+let newMaze = new Maze(800, 40, 40);
 newMaze.setup();
 newMaze.draw();
