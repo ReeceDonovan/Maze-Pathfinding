@@ -1,7 +1,17 @@
+//<Maze Gen variables>
 let maze = document.querySelector(".maze");
 let ctx = maze.getContext("2d");
-
 let current;
+let finalMaze;
+//</Maze Gen variables>
+
+//<Pathfinding variables>
+let start;
+let end;
+let openSet = [];
+let closedSet = [];
+//</Pathfinding variables>
+
 
 class Maze { //Maze class
     constructor(size, rows, cols) { //Basic constructor
@@ -22,8 +32,8 @@ class Maze { //Maze class
             this.grid.push(row);
         }
         current = this.grid[0][0];
-    }
 
+    }
 
     draw() {
         maze.width = this.size;
@@ -56,11 +66,10 @@ class Maze { //Maze class
             current.highlight(this.cols);
         }
 
-        if (this.stack.length == 0) {
-            current.finishedHighlight(this.cols);
-            return;
+        if (!this.stack.length) {
+            let trace = new PathTrace(current.colNum, current.rowNum, current.parentGrid, current.parentSize, this.cols, this.rows);
+            trace.initializeTrace();
         }
-
         window.requestAnimationFrame(() => {
             this.draw();
         })
@@ -143,13 +152,14 @@ class Cell { //Cell class
         ctx.fillRect(x, y, this.parentSize / cols - 3, this.parentSize / cols - 3);
     }
 
-    finishedHighlight(cols) {
+    pathStartHighlight(cols) {
         let x = this.colNum * this.parentSize / cols + 1;
         let y = this.rowNum * this.parentSize / cols + 1;
 
         ctx.fillStyle = "blue";
         ctx.fillRect(x, y, this.parentSize / cols - 3, this.parentSize / cols - 3);
     }
+
 
 
     removeWalls(cell1, cell2) {
@@ -194,7 +204,42 @@ class Cell { //Cell class
     }
 }
 
+class PathTrace {
+    constructor(i, j, finalGrid, finalSize, cols, rows) {
+        this.x = i;
+        this.y = j;
+        this.pathMaze = finalGrid;
+        this.pathMazeSize = finalSize;
+        this.totalCol = cols;
+        this.totalRow = rows;
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+    }
 
-let newMaze = new Maze(800, 25, 25);
+    initializeTrace() {
+        if ((this.x == 0) && (this.y == 0)) {
+            start = this.pathMaze[this.x][this.y];
+            openSet.push(start);
+        }
+        for (let i = 0; i < openSet.length; i++) {
+            let x = openSet[i].colNum * this.pathMazeSize / this.totalCol + 1;
+            let y = openSet[i].rowNum * this.pathMazeSize / this.totalCol + 1;
+
+            ctx.fillStyle = "green";
+            ctx.fillRect(x, y, this.pathMazeSize / this.totalCol - 3, this.pathMazeSize / this.totalCol - 3);
+        }
+        for (let i = 0; i < closedSet.length; i++) {
+            let x = closedSet[i].colNum * this.pathMazeSize / this.totalCol + 1;
+            let y = closedSet[i].rowNum * this.pathMazeSize / this.totalCol + 1;
+
+            ctx.fillStyle = "red";
+            ctx.fillRect(x, y, this.pathMazeSize / this.totalCol - 3, this.pathMazeSize / this.totalCol - 3);
+        }
+    }
+
+}
+
+let newMaze = new Maze(800, 15, 15);
 newMaze.setup();
 newMaze.draw();
