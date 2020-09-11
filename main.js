@@ -2,7 +2,7 @@
 let maze = document.querySelector(".maze");
 let ctx = maze.getContext("2d");
 let current;
-let finalMaze;
+let finalGrid;
 //</Maze Gen variables>
 
 //<Pathfinding variables>
@@ -10,7 +10,25 @@ let start;
 let end;
 let openSet = [];
 let closedSet = [];
+let generated = false;
 //</Pathfinding variables>
+
+
+//Helper functions
+function removeFromArray(openSet, curLow) {
+    for (let i = openSet.length - 1; i >= 0; i--) {
+        if (openSet[i] == curLow) {
+            openSet.splice(i, 1);
+        }
+    }
+}
+
+function heuristic(a, b) {
+    let d = Math.sqrt((a.i - b.i) ** 2 + (a.j - b.j) ** 2);
+    return d;
+}
+
+
 
 
 class Maze { //Maze class
@@ -48,17 +66,8 @@ class Maze { //Maze class
             }
         }
 
-        let cellNeighbors = current.checkNeighbours();
-        current.neighbors = cellNeighbors;
-        let next;
-
-        if (cellNeighbors.length !== 0) {
-            let random = Math.floor(Math.random() * cellNeighbors.length);
-            next = cellNeighbors[random];
-        } else {
-            next = undefined;
-        }
-
+        let next = current.checkVisitNeighbours();
+        current.neighbours = current.checkAllNeighbours();
         if (next) {
             next.visited = true;
 
@@ -75,15 +84,79 @@ class Maze { //Maze class
             current.highlight(this.cols);
         }
 
-        if (!this.stack.length) {
-            let trace = new PathTrace(current.colNum, current.rowNum, current.parentGrid, current.parentSize, this.cols, this.rows);
-            trace.initializeTrace();
+        if (this.stack.length == 0) {
+            finalGrid = current.parentGrid;
+            start = current;
+            end = finalGrid[this.cols - 1][this.rows - 1];
+            openSet.push(start);
+
+
+            for (let i = 0; i < openSet.length; i++) {
+                let x = openSet[i].colNum * this.size / this.cols + 1;
+                let y = openSet[i].rowNum * this.size / this.cols + 1;
+
+                ctx.fillStyle = "green";
+                ctx.fillRect(x, y, this.size / this.cols - 3, this.size / this.cols - 3);
+            }
+            for (let i = 0; i < closedSet.length; i++) {
+                let x = closedSet[i].colNum * this.size / this.cols + 1;
+                let y = closedSet[i].rowNum * this.size / this.cols + 1;
+
+                ctx.fillStyle = "red";
+                ctx.fillRect(x, y, this.size / this.cols - 3, this.size / this.cols - 3);
+
+            }
+            if (openSet.length > 0) {
+
+                let lowestIndex = 0;
+                for (let i = 0; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[lowestIndex].f) {
+                        lowestIndex = i;
+                    }
+                }
+
+                let curLow = openSet[lowestIndex];
+
+                if (openSet[lowestIndex] === end) {
+                    console.log("Finished");
+                    generated = false;
+                }
+
+                removeFromArray(openSet, curLow);
+                closedSet.push(curLow);
+
+                let neighbours = curLow.neighbours;
+                for (let i = 0; i < neighbours.length; i++) {
+                    let neighbour = neighbours[i];
+                    neighbour.g = curLow.g + 1;
+
+                    if (!closedSet.includes(neighbour)) {
+                        let tempG = curLow.g + 1;
+
+                        if (openSet.includes(neighbour)) {
+                            if (tempG < neighbour.g) {
+                                neighbour.g = tempG;
+                            }
+                        } else {
+                            neighbour.g = tempG;
+                            openSet.push(neighbour);
+                        }
+
+                        neighbour.h = heuristic(neighbour, end);
+                        neighbour.f = neighbour.g + neighbour.h;
+                    }
+                }
+            } else {
+                //No solution
+            }
         }
         window.requestAnimationFrame(() => {
             this.draw();
         })
     }
 }
+
+
 
 class Cell { //Cell class
     constructor(rowNum, colNum, parentGrid, parentSize) {
@@ -101,25 +174,55 @@ class Cell { //Cell class
         this.f = 0;
         this.g = 0;
         this.h = 0;
-        this.neighbors = [];
+        this.neighbours = [];
     }
 
-    checkNeighbours() {
+    checkAllNeighbours() {
         let grid = this.parentGrid;
         let row = this.rowNum;
         let col = this.colNum;
-        let neighbors = [];
+        let neighbours = [];
 
         let top = row !== 0 ? grid[row - 1][col] : undefined;
         let bottom = row !== grid.length - 1 ? grid[row + 1][col] : undefined;
         let left = col !== 0 ? grid[row][col - 1] : undefined;
         let right = col !== grid.length - 1 ? grid[row][col + 1] : undefined;
 
-        if (top && !top.visited) neighbors.push(top);
-        if (bottom && !bottom.visited) neighbors.push(bottom);
-        if (left && !left.visited) neighbors.push(left);
-        if (right && !right.visited) neighbors.push(right);
-        return neighbors;
+        if (top) neighbours.push(top);
+        if (bottom) neighbours.push(bottom);
+        if (left) neighbours.push(left);
+        if (right) neighbours.push(right);
+
+
+        return neighbours
+
+    }
+
+    checkVisitNeighbours() {
+        let grid = this.parentGrid;
+        let row = this.rowNum;
+        let col = this.colNum;
+        let neighbours = [];
+
+        let top = row !== 0 ? grid[row - 1][col] : undefined;
+        let bottom = row !== grid.length - 1 ? grid[row + 1][col] : undefined;
+        let left = col !== 0 ? grid[row][col - 1] : undefined;
+        let right = col !== grid.length - 1 ? grid[row][col + 1] : undefined;
+
+        if (top && !top.visited) neighbours.push(top);
+        if (bottom && !bottom.visited) neighbours.push(bottom);
+        if (left && !left.visited) neighbours.push(left);
+        if (right && !right.visited) neighbours.push(right);
+
+
+        if (neighbours.length !== 0) {
+            let random = Math.floor(Math.random() * neighbours.length);
+            return neighbours[random];
+        } else {
+            return undefined;
+        }
+
+
     }
 
     //Generating cell walls
@@ -211,92 +314,7 @@ class Cell { //Cell class
     }
 }
 
-class PathTrace {
-    constructor(i, j, finalGrid, finalSize, cols, rows) {
-        this.x = i;
-        this.y = j;
-        this.pathMaze = finalGrid;
-        this.pathMazeSize = finalSize;
-        this.totalCol = cols;
-        this.totalRow = rows;
-        this.f = 0;
-        this.g = 0;
-        this.h = 0;
-    }
 
-    initializeTrace() {
-        let end = this.pathMaze[this.totalCol - 1][this.totalRow - 1];
-        if ((this.x == 0) && (this.y == 0)) {
-            start = this.pathMaze[this.x][this.y];
-            openSet.push(start);
-        }
-
-        if (openSet.length > 0) {
-
-            let lowestIndex = 0;
-            for (let i = 0; i < openSet.length; i++) {
-                if (openSet[i].f < openSet[lowestIndex].f) {
-                    lowestIndex = i;
-                }
-            }
-
-            let curLow = openSet[lowestIndex];
-
-            if (openSet[lowestIndex] === end) {
-                console.log("Finished");
-            }
-
-            removeFromArray(openSet, curLow);
-            closedSet.push(curLow);
-
-            let neighbours = curlow.neighbours;
-            for (let i = 0; i < neighbours.length; i++) {
-                let neighbour = neighbours[i];
-                neighbour.g = curlow.g + 1;
-
-                if (!closedSet.includes(neighbour)) {
-                    let tempG = curLow.g + 1;
-
-                    if (openSet.includes(neighbour)) {
-                        if (tempG < neighbour.g) {
-                            neighbour.g = tempG;
-                        }
-                    } else {
-                        neighbour.g = tempG;
-                        openSet.push(neighbour);
-                    }
-                }
-            }
-
-        } else {
-            //No solution
-        }
-
-
-        for (let i = 0; i < openSet.length; i++) {
-            let x = openSet[i].colNum * this.pathMazeSize / this.totalCol + 1;
-            let y = openSet[i].rowNum * this.pathMazeSize / this.totalCol + 1;
-
-            ctx.fillStyle = "green";
-            ctx.fillRect(x, y, this.pathMazeSize / this.totalCol - 3, this.pathMazeSize / this.totalCol - 3);
-        }
-        for (let i = 0; i < closedSet.length; i++) {
-            let x = closedSet[i].colNum * this.pathMazeSize / this.totalCol + 1;
-            let y = closedSet[i].rowNum * this.pathMazeSize / this.totalCol + 1;
-
-            ctx.fillStyle = "red";
-            ctx.fillRect(x, y, this.pathMazeSize / this.totalCol - 3, this.pathMazeSize / this.totalCol - 3);
-        }
-    }
-    removeFromArray(openSet, curLow) {
-        for (let i = openSet.length - 1; i >= 0; i--) {
-            if (openSet[i] == curLow) {
-                openSet.splice(i, 1);
-            }
-        }
-    }
-
-}
 
 let newMaze = new Maze(800, 15, 15);
 newMaze.setup();
