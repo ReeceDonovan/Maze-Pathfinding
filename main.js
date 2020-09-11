@@ -44,29 +44,3 @@ class Cell {
 
 let newMaze = new Maze(500, 10, 10);
 newMaze.setup();
-
-//
-//
-//
-//
-//
-// var cols = 5;
-// var rows = 5;
-// var grid = new Array(cols);
-
-// function setup() {
-//     createCanvas(400, 400);
-//     console.log('A*');
-
-//     //2D Array
-//     for (var i = 0; i < cols; i++) {
-//         grid[i] = new Array(rows);
-//     }
-
-// }
-
-// function draw() {
-//     background(0);
-
-
-// }
