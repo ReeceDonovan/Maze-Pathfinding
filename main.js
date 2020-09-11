@@ -48,7 +48,16 @@ class Maze { //Maze class
             }
         }
 
-        let next = current.checkNeighbours();
+        let cellNeighbors = current.checkNeighbours();
+        current.neighbors = cellNeighbors;
+        let next;
+
+        if (cellNeighbors.length !== 0) {
+            let random = Math.floor(Math.random() * cellNeighbors.length);
+            next = cellNeighbors[random];
+        } else {
+            next = undefined;
+        }
 
         if (next) {
             next.visited = true;
@@ -89,6 +98,10 @@ class Cell { //Cell class
             leftWall: true,
             rightWall: true,
         };
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+        this.neighbors = [];
     }
 
     checkNeighbours() {
@@ -106,13 +119,7 @@ class Cell { //Cell class
         if (bottom && !bottom.visited) neighbors.push(bottom);
         if (left && !left.visited) neighbors.push(left);
         if (right && !right.visited) neighbors.push(right);
-
-        if (neighbors.length !== 0) {
-            let random = Math.floor(Math.random() * neighbors.length);
-            return neighbors[random];
-        } else {
-            return undefined;
-        }
+        return neighbors;
     }
 
     //Generating cell walls
@@ -218,10 +225,54 @@ class PathTrace {
     }
 
     initializeTrace() {
+        let end = this.pathMaze[this.totalCol - 1][this.totalRow - 1];
         if ((this.x == 0) && (this.y == 0)) {
             start = this.pathMaze[this.x][this.y];
             openSet.push(start);
         }
+
+        if (openSet.length > 0) {
+
+            let lowestIndex = 0;
+            for (let i = 0; i < openSet.length; i++) {
+                if (openSet[i].f < openSet[lowestIndex].f) {
+                    lowestIndex = i;
+                }
+            }
+
+            let curLow = openSet[lowestIndex];
+
+            if (openSet[lowestIndex] === end) {
+                console.log("Finished");
+            }
+
+            removeFromArray(openSet, curLow);
+            closedSet.push(curLow);
+
+            let neighbours = curlow.neighbours;
+            for (let i = 0; i < neighbours.length; i++) {
+                let neighbour = neighbours[i];
+                neighbour.g = curlow.g + 1;
+
+                if (!closedSet.includes(neighbour)) {
+                    let tempG = curLow.g + 1;
+
+                    if (openSet.includes(neighbour)) {
+                        if (tempG < neighbour.g) {
+                            neighbour.g = tempG;
+                        }
+                    } else {
+                        neighbour.g = tempG;
+                        openSet.push(neighbour);
+                    }
+                }
+            }
+
+        } else {
+            //No solution
+        }
+
+
         for (let i = 0; i < openSet.length; i++) {
             let x = openSet[i].colNum * this.pathMazeSize / this.totalCol + 1;
             let y = openSet[i].rowNum * this.pathMazeSize / this.totalCol + 1;
@@ -235,6 +286,13 @@ class PathTrace {
 
             ctx.fillStyle = "red";
             ctx.fillRect(x, y, this.pathMazeSize / this.totalCol - 3, this.pathMazeSize / this.totalCol - 3);
+        }
+    }
+    removeFromArray(openSet, curLow) {
+        for (let i = openSet.length - 1; i >= 0; i--) {
+            if (openSet[i] == curLow) {
+                openSet.splice(i, 1);
+            }
         }
     }
 
