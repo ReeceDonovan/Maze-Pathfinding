@@ -57,6 +57,7 @@ class Maze { //Maze class
         }
 
         if (this.stack.length == 0) {
+            current.finishedHighlight(this.cols);
             return;
         }
 
@@ -142,6 +143,15 @@ class Cell { //Cell class
         ctx.fillRect(x, y, this.parentSize / cols - 3, this.parentSize / cols - 3);
     }
 
+    finishedHighlight(cols) {
+        let x = this.colNum * this.parentSize / cols + 1;
+        let y = this.rowNum * this.parentSize / cols + 1;
+
+        ctx.fillStyle = "blue";
+        ctx.fillRect(x, y, this.parentSize / cols - 3, this.parentSize / cols - 3);
+    }
+
+
     removeWalls(cell1, cell2) {
         let x = (cell1.colNum - cell2.colNum);
 
@@ -185,6 +195,6 @@ class Cell { //Cell class
 }
 
 
-let newMaze = new Maze(800, 40, 40);
+let newMaze = new Maze(800, 25, 25);
 newMaze.setup();
 newMaze.draw();
